@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "io.github.ahappypie.unica.grpc";
+option java_outer_classname = "UnicaProto";
+
+service Unica {
+    rpc GetID (UnicaRequest) returns (UnicaResponse) {}
+}
+
+message UnicaRequest {}
+
+message UnicaResponse {
+    uint64 delay = 1;
+}
