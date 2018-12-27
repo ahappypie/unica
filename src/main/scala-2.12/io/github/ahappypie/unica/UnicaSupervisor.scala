@@ -9,6 +9,6 @@ object UnicaSupervisor {
 
 class UnicaSupervisor extends Actor {
   override def receive: Receive = {
-    case req: UnicaRequest => print(req) //context.actorOf(UnicaActor.props).forward(req)
+    case req: UnicaRequest => context.actorOf(UnicaActor.props).forward(req)
   }
 }

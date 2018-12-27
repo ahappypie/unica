@@ -10,5 +10,5 @@ service Unica {
 message UnicaRequest {}
 
 message UnicaResponse {
-    uint64 delay = 1;
+    uint64 id = 1;
 }
