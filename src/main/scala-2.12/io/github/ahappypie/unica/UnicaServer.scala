@@ -17,7 +17,8 @@ object UnicaServer {
 
   def main(args: Array[String]): Unit = {
     val actorSystem = ActorSystem("unica-system")
-    val unicaSupervisor = actorSystem.actorOf(UnicaSupervisor.props, "unica-supervisor")
+    val deploymentId = 0L
+    val unicaSupervisor = actorSystem.actorOf(UnicaSupervisor.props(deploymentId), "unica-supervisor")
     val server = new UnicaServer(ExecutionContext.global, unicaSupervisor)
     server.start()
     server.blockUntilShutdown()
