@@ -17,7 +17,8 @@ object UnicaServer {
 
   def main(args: Array[String]): Unit = {
     val actorSystem = ActorSystem("unica-system")
-    val deploymentId = 0L
+    val depEnv = sys.env.getOrElse("DEPLOYMENT_ID", "0")
+    val deploymentId = depEnv.substring(depEnv.length()-1).toLong
     val unicaSupervisor = actorSystem.actorOf(UnicaSupervisor.props(deploymentId), "unica-supervisor")
     val server = new UnicaServer(ExecutionContext.global, unicaSupervisor)
     server.start()
@@ -53,7 +54,7 @@ class UnicaServer(ec: ExecutionContext, us: ActorRef) { self =>
   }
 
   private class UnicaImpl extends UnicaGrpc.Unica {
-    implicit val timeout = Timeout(5 seconds)
+    implicit val timeout = Timeout(1 seconds)
 
     override def getID(req: UnicaRequest) = {
       us.ask(req).mapTo[UnicaResponse]

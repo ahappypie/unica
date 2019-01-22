@@ -4,22 +4,19 @@ import akka.actor.{Actor, ActorLogging, Props}
 import io.github.ahappypie.unica.grpc.unica.{UnicaRequest, UnicaResponse}
 
 object UnicaActor {
-  def props(deploymentId: Long, id: Long): Props = Props(new UnicaActor(deploymentId, id))
+  def props(deploymentId: Long): Props = Props(new UnicaActor(deploymentId))
 }
 
-class UnicaActor(deploymentId: Long, id: Long) extends Actor with ActorLogging {
+class UnicaActor(deploymentId: Long) extends Actor with ActorLogging {
 
   val epoch: Long = 1543622400000L
 
-  private val actorIdBits = 4L
-  private val deploymentIdBits = 6L
-  private val maxActorId = -1L ^ (-1L << actorIdBits)
+  private val deploymentIdBits = 10L
   private val maxDeploymentId = -1L ^ (-1L << deploymentIdBits)
   private val sequenceBits = 12L
 
-  private val actorIdShift = sequenceBits
-  private val deploymentIdShift = sequenceBits + actorIdBits
-  private val timestampShift = sequenceBits + actorIdBits + deploymentIdBits
+  private val deploymentIdShift = sequenceBits
+  private val timestampShift = sequenceBits + deploymentIdBits
   private val sequenceMask = -1L ^ (-1L << sequenceBits)
 
   private var lastTimestamp = -1L
@@ -27,28 +24,25 @@ class UnicaActor(deploymentId: Long, id: Long) extends Actor with ActorLogging {
 
   override def preStart(): Unit = {
     super.preStart()
-    if(id > maxActorId || id < 0) {
-      throw new IllegalArgumentException("actor id can't be greater than %d or less than 0".format(maxActorId))
-    }
 
     if(deploymentId > maxDeploymentId || deploymentId < 0) {
       throw new IllegalArgumentException("deployment id can't be greater than %d or less than 0".format(maxDeploymentId))
     }
 
-    log.info("actor starting. timestamp shift %d, deployment id bits %d, actor id bits %d, sequence bits %d, actorid %d".format(
-      timestampShift, deploymentIdBits, actorIdBits, sequenceBits, id))
+    log.info("actor starting. timestamp shift %d, deployment id bits %d, sequence bits %d".format(
+      timestampShift, deploymentIdBits, sequenceBits))
   }
 
 
   override def receive: Receive = {
-    case req: UnicaRequest => { val uid = generate()
-      log.info("actor id %d generated uid %s".format(id, uid))
-      sender ! UnicaResponse(uid)
-      context.parent ! UnicaResponse(uid)
+    case req: UnicaRequest => {
+      //log.info("actor generated uid %s".format(uid))
+      sender ! UnicaResponse(generate())
+      //context.parent ! UnicaResponse(uid)
     }
   }
 
-  def generate(): Long = synchronized {
+  def generate(): Long = {
     var timestamp = System.currentTimeMillis()
 
     if(timestamp < lastTimestamp) {
@@ -69,7 +63,6 @@ class UnicaActor(deploymentId: Long, id: Long) extends Actor with ActorLogging {
 
     ((timestamp - epoch) << timestampShift) |
       (deploymentId << deploymentIdShift) |
-      (id << actorIdShift) |
       sequence
   }
 
