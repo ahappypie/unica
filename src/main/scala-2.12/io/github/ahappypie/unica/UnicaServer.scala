@@ -5,7 +5,8 @@ import java.util.logging.Logger
 import io.grpc.{Server, ServerBuilder}
 import io.github.ahappypie.unica.grpc.unica.{UnicaGrpc, UnicaRequest, UnicaResponse}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object UnicaServer {
   private val logger = Logger.getLogger(classOf[UnicaServer].getName)
@@ -43,6 +44,7 @@ class UnicaServer(ec: ExecutionContext, did: Long) { self =>
 
     server = ServerBuilder.forPort(UnicaServer.port).addService(UnicaGrpc.bindService(new UnicaImpl, ec)).build.start
     UnicaServer.logger.info("Server started, listening on " + UnicaServer.port)
+    UnicaServer.logger.info("Available resources:\nCPU: " + Runtime.getRuntime.availableProcessors() + "\nMax Memory: " + Runtime.getRuntime.maxMemory()/(1024L*1024L) + " MB")
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
@@ -64,14 +66,13 @@ class UnicaServer(ec: ExecutionContext, did: Long) { self =>
 
   private class UnicaImpl extends UnicaGrpc.Unica {
     override def getID(req: UnicaRequest) = {
-      Future.successful(UnicaResponse(generate()))
+      Future {UnicaResponse(generate())}
     }
 
     def generate(): Long = synchronized {
       var timestamp = System.currentTimeMillis()
 
       if(timestamp < lastTimestamp) {
-        System.err.println("clock is moving backwards. Rejecting requests until %d", lastTimestamp)
         throw new Exception("clock is moving backwards. Rejecting requests for %d milliseconds".format(lastTimestamp - timestamp))
       }
 
