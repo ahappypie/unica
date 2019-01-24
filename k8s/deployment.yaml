@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: unica
+spec:
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      service: unica-service
+  serviceName: unica-service
+  template:
+    metadata:
+      labels:
+        service: unica-service
+    spec:
+      containers:
+      - name: unica
+        image: quay.io/ahappypie/unica:0.0.2
+        imagePullPolicy: Always
+        ports:
+          - name: unica-endpoint
+            containerPort: 50001
+        env:
+          - name: GRPC_PORT
+            value: "50001"
+          - name: DEPLOYMENT_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: 0.1
+            memory: 100Mi
+          limits:
+            cpu: 1
+            memory: 1000Mi
+      restartPolicy: Always

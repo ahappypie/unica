@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: unica-service
+  name: unica-service
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name:  unica-service-mapping
+      grpc: true
+      prefix: /unica.IdService/
+      rewrite: /unica.IdService/
+      service: unica-service
+spec:
+  ports:
+    - name: unica-port
+      port: 80
+      targetPort: unica-endpoint
+  selector:
+    service: unica-service
+  type: ClusterIP

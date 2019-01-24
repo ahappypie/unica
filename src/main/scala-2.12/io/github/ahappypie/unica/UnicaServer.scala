@@ -3,7 +3,6 @@ package io.github.ahappypie.unica
 import java.util.logging.Logger
 
 import io.grpc.{Server, ServerBuilder}
-import io.github.ahappypie.unica.grpc.unica.{UnicaGrpc, UnicaRequest, UnicaResponse}
 
 import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,7 +11,8 @@ object UnicaServer {
   private val logger = Logger.getLogger(classOf[UnicaServer].getName)
 
   def main(args: Array[String]): Unit = {
-    val deploymentId = sys.env.getOrElse("DEPLOYMENT_ID", "0").toLong
+    val depEnv = sys.env.getOrElse("DEPLOYMENT_ID", "0")
+    val deploymentId = depEnv.substring(depEnv.length()-1).toLong
     val server = new UnicaServer(ExecutionContext.global, deploymentId)
     server.start()
     server.blockUntilShutdown()
@@ -42,8 +42,9 @@ class UnicaServer(ec: ExecutionContext, did: Long) { self =>
       throw new IllegalArgumentException("deployment id can't be greater than %d or less than 0".format(maxDeploymentId))
     }
 
-    server = ServerBuilder.forPort(UnicaServer.port).addService(UnicaGrpc.bindService(new UnicaImpl, ec)).build.start
+    server = ServerBuilder.forPort(UnicaServer.port).addService(IdServiceGrpc.bindService(new UnicaImpl, ec)).build.start
     UnicaServer.logger.info("Server started, listening on " + UnicaServer.port)
+    UnicaServer.logger.info("Deployment id " + did)
     UnicaServer.logger.info("Available resources:\nCPU: " + Runtime.getRuntime.availableProcessors() + "\nMax Memory: " + Runtime.getRuntime.maxMemory()/(1024L*1024L) + " MB")
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
@@ -64,8 +65,8 @@ class UnicaServer(ec: ExecutionContext, did: Long) { self =>
     }
   }
 
-  private class UnicaImpl extends UnicaGrpc.Unica {
-    override def getID(req: UnicaRequest) = {
+  private class UnicaImpl extends IdServiceGrpc.IdService {
+    override def getId(req: UnicaRequest) = {
       Future {UnicaResponse(generate())}
     }
 
