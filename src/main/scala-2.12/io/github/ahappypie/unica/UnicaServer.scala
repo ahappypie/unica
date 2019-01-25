@@ -74,7 +74,8 @@ class UnicaServer(ec: ExecutionContext, did: Long) { self =>
       var timestamp = System.currentTimeMillis()
 
       if(timestamp < lastTimestamp) {
-        throw new Exception("clock is moving backwards. Rejecting requests for %d milliseconds".format(lastTimestamp - timestamp))
+        UnicaServer.logger.severe("clock is moving backwards. Waiting for %d milliseconds".format(lastTimestamp - timestamp))
+        timestamp = holdUntil(lastTimestamp)
       }
 
       if(lastTimestamp == timestamp) {
