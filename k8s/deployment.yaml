@@ -1,10 +1,35 @@
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: unica-service
+  name: unica-service
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v1
+      kind: Mapping
+      name: unica-service-mapping
+      grpc: True
+      prefix: /unica.IdService/
+      rewrite: /unica.IdService/
+      service: unica-service
+spec:
+  ports:
+    - name: unica-port
+      port: 80
+      targetPort: unica-endpoint
+  selector:
+    service: unica-service
+  type: ClusterIP
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: unica
 spec:
-  replicas: 3
+  replicas: 1
   updateStrategy:
     type: RollingUpdate
   selector:
@@ -18,14 +43,12 @@ spec:
     spec:
       containers:
       - name: unica
-        image: quay.io/ahappypie/unica:0.0.2
+        image: quay.io/ahappypie/unica:0.1.0
         imagePullPolicy: Always
         ports:
           - name: unica-endpoint
             containerPort: 50001
         env:
-          - name: GRPC_PORT
-            value: "50001"
           - name: DEPLOYMENT_ID
             valueFrom:
               fieldRef:

@@ -9,6 +9,8 @@ import (
 	"math"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -24,15 +26,15 @@ const (
 	epoch = uint64(1546300800000)
 
 	deploymentIdBits = uint64(10)
-	maxDeploymentId  = int64(-1) ^ (int64(-1) << deploymentIdBits)
+	maxDeploymentId  = uint64(int64(-1) ^ (int64(-1) << deploymentIdBits))
 	sequenceBits     = uint64(12)
 
 	deploymentIdShift = sequenceBits
 	timestampShift    = sequenceBits + deploymentIdBits
 	sequenceMask      = uint64(int64(-1) ^ (int64(-1) << sequenceBits))
-
-	did = uint64(0)
 )
+
+var did = getDeploymentId()
 
 var sequence = uint64(0)
 var lastTimestamp = uint64(0)
@@ -140,4 +142,20 @@ func holdUntil(ts uint64) uint64 {
 
 func makeTimestamp() uint64 {
 	return uint64(time.Now().UnixNano() / 1e6)
+}
+
+func getDeploymentId() uint64 {
+	val, exists := os.LookupEnv("DEPLOYMENT_ID")
+	if !exists {
+		return uint64(0)
+	} else {
+		var d, err = strconv.ParseUint(val[strings.Index(val, "-")+1:], 10, 64)
+		if err != nil {
+			zap.L().Fatal("could not parse deployment id", zap.String("deploymentId", val))
+		}
+		if d > maxDeploymentId {
+			zap.L().Fatal("too many deployments", zap.Uint64("deploymentId", d))
+		}
+		return d
+	}
 }
